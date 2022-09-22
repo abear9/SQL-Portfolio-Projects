@@ -12,7 +12,7 @@ FROM employees
 
 #Check how many employees started in each month per each year
 
-SELECT month(employees.startdate), year(employees.startdate), count(1)
+SELECT month(employees.startdate), year(employees.startdate), count(*)
 FROM employees
 GROUP BY month(employees.startdate), year(employees.startdate)
 ORDER BY 2, 1
