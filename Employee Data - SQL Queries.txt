@@ -1,4 +1,4 @@
-#WORK IN PROGRESS
+####WORK IN PROGRESS
 #This is a basic analysis and my first attempt at a SQL project using some fictional employee data, inspired by and guided by "Hands on Data Science" on Linkedin Learning. 
 #There are two tables being queried: 'employees' and 'dates'. These queries were written in the data.world environment. 
 #Skills shown: EDA, Joins, Subqueries, Aggregation
