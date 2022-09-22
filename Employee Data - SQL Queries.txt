@@ -1,0 +1,57 @@
+#WORK IN PROGRESS
+#This is a basic analysis and my first attempt at a SQL project using some fictional employee data, inspired by and guided by "Hands on Data Science" on Linkedin Learning. 
+#There are two tables being queried: 'employees' and 'dates'. These queries were written in the data.world environment. 
+#Skills shown: EDA, Joins, Subqueries, Aggregation
+
+
+#Look at range of values of start date column
+
+SELECT min(employees.startdate), max(employees.startdate)
+FROM employees
+
+
+#Check how many employees started in each month per each year
+
+SELECT month(employees.startdate), year(employees.startdate), count(1)
+FROM employees
+GROUP BY month(employees.startdate), year(employees.startdate)
+ORDER BY 2, 1
+
+
+#See how many employees started before July 1, 2008 and either left after that date or are still working
+SELECT COUNT(*)
+FROM employees
+WHERE employees.startdate <= '2008-07-01'
+and (employees.enddate >= '2008-07-01'
+    OR  
+    employees.enddate is NULL)
+
+
+#####Which department is paid the most? 
+
+#Look at range of values of datekey column
+SELECT min(dates.datekey), max(dates.datekey)
+FROM employees
+
+#We want to determine how many employees were active in each month. 
+#First, get the last day of each month
+
+SELECT DISTINCT DATE_ADD(DATE_ADD(DATE_TRUNC(dates.datekey, "month"),1,"month"), -1, "day") eomonth
+FROM dates
+
+#This query gets the unique result when you truncate each date to just the month, add one day to get the first day of the next month, then subtract one day to get the last day of the current month
+
+#Now, use previous query as subquery and join to employees table to solve the problem
+
+WITH `dateslist` as (
+    SELECT DISTINCT DATE_ADD(DATE_ADD(DATE_TRUNC(dates.datekey, "month"),1,"month"), -1, "day") eomonth
+    FROM dates)
+
+SELECT dateslist.eomonth, count(*)
+FROM employees CROSS JOIN `dateslist` as dateslist
+WHERE dateslist.eomonth >= employees.startdate 
+AND (dateslist.eomonth <= employees.startdate
+    OR
+    employees.enddate is NULL)
+GROUP BY dateslist.eomonth
+ORDER BY dateslist.eomonth
