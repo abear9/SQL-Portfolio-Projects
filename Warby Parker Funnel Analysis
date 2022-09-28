@@ -1,0 +1,134 @@
+Warby Parker Sales Funnel Project
+
+—This project uses a fictional dataset provided by Warby Parker through Codecademy. The goal of this project is to analyze user funnels through the Warby Parker Buying Process.
+—Skills shown: EDA, Joins on multiple tables, Temporary Tables, Aggregation, Analysis of A/B test, User Funnels
+
+
+—First, we will look at  the Style Quiz Funnel
+--Check out the first table
+
+ SELECT *
+ FROM survey
+ LIMIT 10;
+
+
+ --Analyze users who move from Q1 to Q2 and so on
+
+ SELECT question,
+        COUNT(DISTINCT user_id)
+ FROM survey
+ GROUP BY question
+ ORDER BY question;
+
+
+—Result:
+
+question	                    num_users
+1. What are you looking for?	  500
+2. What's your fit?	            475
+3. Which shapes do you like?	  380
+4. Which colors do you like?	  361
+5. When was your last eye exam?	270
+
+— As users go further in the funnel, the less questions they answer. Perhaps they do not know the answer to a question like 5, or don’t know exactly what shape or color they are looking for. In addition, the user may not understand the options available to them by simply seeing the question.
+
+
+—Now, we will look at the Home Try On Funnel
+—We want to analyze an A/B Test where 50% of users receive 3 pairs to try on and 50% receive 5 pairs to try on
+—Check out the first 5 rows in all 3 tables 
+
+SELECT * 
+FROM quiz
+LIMIT 5;
+
+SELECT * 
+FROM home_try_on
+LIMIT 5;
+
+SELECT * 
+FROM purchase
+LIMIT 5;
+
+—Create Table to show for each user how far they reached in funnel
+
+SELECT DISTINCT q.user_id,
+  h.user_id IS NOT NULL AS 'is_home_try_on',
+  h.number_of_pairs,
+  p.user_id IS NOT NULL AS 'is_purchase'
+FROM quiz AS q
+LEFT JOIN home_try_on as h
+  ON h.user_id = q.user_id
+LEFT JOIN purchase as p
+  ON p.user_id = h.user_id
+LIMIT 10;
+
+—Get Total number of purchases from purchase table
+
+SELECT COUNT(*)
+FROM purchase;
+
+—Result is 495 purchases
+
+—Determine results of A/B test using Group By of number of pairs
+—Create temp table funnel using previous query, then sum is_purchase by num_pairs received
+
+WITH funnel AS (
+  SELECT DISTINCT q.user_id,
+  	h.user_id IS NOT NULL AS 'is_home_try_on',
+  	h.number_of_pairs AS 'num_pairs',
+  	p.user_id IS NOT NULL AS 'is_purchase'
+  FROM quiz AS q
+  LEFT JOIN home_try_on as h
+  	ON h.user_id = q.user_id
+  LEFT JOIN purchase as p
+  	ON p.user_id = h.user_id
+  WHERE h.number_of_pairs IS NOT NULL
+  )
+SELECT num_pairs,
+  SUM(is_purchase) AS
+FROM funnel
+GROUP BY num_pairs;
+
+—Result shows the group who received 3 pairs made 201 purchases, where the 5 pairs group made 294. 
+—To see the purchase rate for each group:
+
+WITH funnel AS (
+  SELECT DISTINCT q.user_id,
+  h.user_id IS NOT NULL AS 'is_home_try_on',
+  h.number_of_pairs AS 'num_pairs',
+  p.user_id IS NOT NULL AS 'is_purchase'
+FROM quiz AS q
+LEFT JOIN home_try_on as h
+  ON h.user_id = q.user_id
+LEFT JOIN purchase as p
+  ON p.user_id = h.user_id
+WHERE h.number_of_pairs IS NOT NULL
+  )
+SELECT num_pairs,
+  1.0 * SUM(is_purchase) / SUM(is_home_try_on) AS 'purchase_rate'
+FROM funnel
+GROUP BY num_pairs;
+
+—Those who received 3 pairs purchased a pair 53.03% of the time, whereas the 5 pairs group purchased 79.25% of the time. This clearly shows that sending a user 5 pairs leads to a higher purchase rate.
+
+—One more question, what is the most popular model of glasses purchased?
+
+SELECT DISTINCT model_name,
+  COUNT(user_id) AS 'num_purchases'
+FROM purchase
+GROUP BY model_name
+ORDER BY num_purchases DESC;
+
+--Result:
+model_name	num_purchases
+Eugene Narrow	  116
+Dawes	          107
+Brady	          95
+Lucy	          86
+Olive	          50
+Monocle	        41
+
+
+—Eugene Narrow was purchased 116 times, or roughly 23% of purchases (116/495). 
+
+
