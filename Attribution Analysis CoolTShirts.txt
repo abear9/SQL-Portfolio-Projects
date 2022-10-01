@@ -1,0 +1,167 @@
+--This is a project looking at the effectiveness of marketing campaigns for a fictional company called "CoolTShirts". The database contains one table, page_visits. 
+--I will look at the details of the data, which campaigns are most effective, and provide a suggestion at the end for which campaigns to further invest in.
+--Skills shown: EDA, Joins, Temp Tables, Data Analytics, Joins on Temp Tables  
+
+--First look at how many campaigns and sources the company uses, then look at which source is used for witch campaign
+
+
+SELECT DISTINCT(utm_campaign)
+FROM page_visits;
+
+SELECT DISTINCT(utm_source)
+FROM page_visits;
+
+SELECT DISTINCT (utm_campaign),
+      (utm_source)
+FROM page_visits
+ORDER BY 1;
+
+
+--Result:
+utm_campaign				utm_source
+cool-tshirts-search			google
+getting-to-know-cool-tshirts		nytimes
+interview-with-cool-tshirts-founder	medium
+paid-search				google
+retargetting-ad				facebook
+retargetting-campaign			email
+ten-crazy-cool-tshirts-facts		buzzfeed
+weekly-newsletter			email
+
+--There are 8 campaigns, and 8 sources. 
+--Look at the page names on the Website
+
+SELECT DISTINCT page_name
+FROM page_visits
+ORDER BY 1;
+
+--page_name
+1 - landing_page
+2 - shopping_cart
+3 - checkout
+4 - purchase
+
+
+--Now look at how many first touches each campaign is responsible for to measure effectiveness of bringing people to the site
+
+WITH first_touch AS (
+    SELECT user_id,
+        MIN(timestamp) as first_touch_at
+    FROM page_visits
+    GROUP BY user_id),
+
+ft_attr AS (
+  SELECT ft.user_id,
+         ft.first_touch_at,
+         pv.utm_source,
+         pv.utm_campaign
+  FROM first_touch ft
+  JOIN page_visits pv
+    ON ft.user_id = pv.user_id
+    AND ft.first_touch_at = pv.timestamp
+)
+SELECT ft_attr.utm_source,
+       ft_attr.utm_campaign,
+       COUNT(*)
+FROM ft_attr
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+--Result:
+utm_source					utm_campaign					COUNT(*)
+medium						interview-with-cool-tshirts-founder		622
+nytimes						getting-to-know-cool-tshirts			612
+buzzfeed					ten-crazy-cool-tshirts-facts			576
+google						cool-tshirts-search				169
+
+
+--Now do the same for Last Touch (switch all columns and temp table names, but mostly the same query)
+
+WITH last_touch AS (
+    SELECT user_id,
+        MAX(timestamp) as last_touch_at
+    FROM page_visits
+    GROUP BY user_id),
+lt_attr AS (
+  SELECT lt.user_id,
+         lt.last_touch_at,
+         pv.utm_source,
+         pv.utm_campaign,
+         pv.page_name
+  FROM last_touch lt
+  JOIN page_visits pv
+    ON lt.user_id = pv.user_id
+    AND lt.last_touch_at = pv.timestamp
+)
+SELECT lt_attr.utm_source,
+       lt_attr.utm_campaign,
+       COUNT(*)
+FROM lt_attr
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+--Result:
+utm_source					utm_campaign					COUNT(*)
+email						weekly-newsletter				447
+facebook					retargetting-ad					443
+email						retargetting-campaign				245
+nytimes						getting-to-know-cool-tshirts			232
+buzzfeed					ten-crazy-cool-tshirts-facts			190
+medium						interview-with-cool-tshirts-founder		184
+google						paid-search					178
+google						cool-tshirts-search				60
+
+
+--Now want to find how many last touches on the purchase page each campaign is responsible for
+--First, need to find how many users made a purchase
+
+SELECT COUNT(DISTINCT user_id) AS num_purchases
+FROM page_visits
+WHERE page_name = '4 - purchase';
+
+
+--361 purchases were made. 
+--Now, slightly tweaking the last touch query to include a WHERE clause, I can find the number of last touches each campaign is responsible for.
+
+WITH last_touch AS (
+    SELECT user_id,
+        MAX(timestamp) as last_touch_at
+    FROM page_visits
+    GROUP BY user_id),
+lt_attr AS (
+  SELECT lt.user_id,
+         lt.last_touch_at,
+         pv.utm_source,
+         pv.utm_campaign,
+         pv.page_name
+  FROM last_touch lt
+  JOIN page_visits pv
+    ON lt.user_id = pv.user_id
+    AND lt.last_touch_at = pv.timestamp
+  WHERE pv.page_name = '4 - purchase'
+)
+SELECT lt_attr.utm_source,
+       lt_attr.utm_campaign,
+       COUNT(*)
+FROM lt_attr
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+--Result:
+utm_source				utm_campaign				COUNT(*)
+email					weekly-newsletter			114
+facebook				retargetting-ad				112
+email					retargetting-campaign			53
+google					paid-search				52
+buzzfeed				ten-crazy-cool-tshirts-facts		9
+nytimes					getting-to-know-cool-tshirts		9
+medium					interview-with-cool-tshirts-founder	7
+google					cool-tshirts-search			2
+
+
+--Now, let's say CoolTShirts can re-invest in 5 campaigns. Which should they pick?
+--Going purely based on the count of last touches on purchase, they should choose weekly-newsletter, retargetting-ad, retargetting-campaign, paid-search,
+--and ten-crazy-cool-tshirts-facts. Two of these options, however, are retargetting campaigns, not aimed at generating new user first touches.
+--Therefore, it would be useful to consider other factors in the data, such as which campaign is bringing in the most first touches.
+--Going based off the previous results from the first touch query, a campaign like interview-with-cool-tshirts-founder could be worth investing in over   
+--ten-crazy-cool-tshirts-facts, which only generated 9 last touches on the purchase page. Further analysis could be done to determine exactly which campaign should be invested in.
