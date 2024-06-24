@@ -1,7 +1,6 @@
 --DDL and Insert Script Homework
 
 --Drop Tables section in order that parent/child tables need to be deleted
---Author ah64595 Andrew Hebert
 DROP TABLE Member_Address_Link;
 DROP TABLE Member_Address;
 DROP TABLE Member_Phone;
@@ -16,7 +15,6 @@ COMMIT;
 
 --Create Tables section
 --First create the tables for the member attributes
---Author: ah64595 Andrew Hebert
 CREATE TABLE Members (
 member_ID       NUMBER          PRIMARY KEY, 
 First_Name      VARCHAR(100)    NOT NULL, 
@@ -114,7 +112,6 @@ Updated_Balance NUMBER          CHECK(Updated_Balance >= 0)
 COMMIT;
 
 --Insert data into the new tables created
---Author ah64595 Andrew Hebert
 
 --Creating 2 Members
 INSERT INTO Members 
@@ -237,7 +234,6 @@ WHERE Loan_Number = 'KR1234567890';
 COMMIT;
 
 --Create Indexes on all foreign keys to speed up queries
---Author ah64595 Andrew Hebert
 CREATE INDEX phone_member_index
 ON Member_Phone(Member_ID);
 
